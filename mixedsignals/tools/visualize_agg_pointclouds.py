@@ -13,7 +13,7 @@ def main(chosen_sequence_index: int = 18,
     
     print(f'showing aggregate pc of sequence {chosen_sequence_index} in TOP frame')
 
-    msig = MixedSignalsExplorer('data/mixed-signals-mini', verbose=True)
+    msig = MixedSignalsExplorer('/mnt/d/Datasets/mixed-signals-mini', verbose=True)
     seq_exist_cavs = msig.return_name_cavs_in_seq(chosen_sequence_index)
     print(f"name CAVs in sequecne {chosen_sequence_index}: {seq_exist_cavs}")
 
@@ -26,7 +26,7 @@ def main(chosen_sequence_index: int = 18,
     painter = PointPainter()
 
     # ===
-    for agent_name in msig.name_rsu_lidars + seq_exist_cavs:
+    for agent_name in list(msig.name_rsu_lidars) + seq_exist_cavs:
         # get point cloud in agent's body frame
         agent_pc, agent_timestamp = \
             msig.return_agent_point_cloud(chosen_sequence_index, agent_name, sync_time_idx)

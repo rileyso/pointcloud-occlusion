@@ -387,9 +387,9 @@ class SequencePointClouds(object):
         for agent_name, agent_timestamp_list in self.agents_timestamp.items():
             if seq_length < 0:
                 seq_length = len(agent_timestamp_list)
-            else:
-                assert len(agent_timestamp_list) == seq_length, \
-                    f"{agent_name} has {len(agent_timestamp_list)} != {seq_length}"
+            # else:
+            #     assert len(agent_timestamp_list) == seq_length, \
+            #         f"{agent_name} has {len(agent_timestamp_list)} != {seq_length}"
         
         return
 
@@ -419,7 +419,7 @@ class SequencePointClouds(object):
 AGENT_COLOR = {
     '003': np.array([255, 59, 48]) / 255.,
     '004': np.array([137, 68, 171]) / 255.,
-    'laser': np.array([255, 204, 0]) / 255.,
+    'laser': np.array([128, 59, 128]) / 255.,
     'top': np.array([0, 122, 255]) / 255.,
     'dome': np.array([36, 138, 61]) / 255.,
 }

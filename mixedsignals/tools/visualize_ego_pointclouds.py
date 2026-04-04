@@ -28,7 +28,7 @@ def make_lineset_from_vertices(vertices, color=(1.0, 0.0, 0.0)):
 def main(chosen_sequence_index = 30, labeled_frame_idx = 100):
     
     print(f'showing ego pc of sequence {chosen_sequence_index} in TOP frame')
-    msig = MixedSignalsExplorer('/mnt/d/Datasets/Mixed_signals', verbose = False)
+    msig = MixedSignalsExplorer('/mnt/d/Datasets/mixed-signals-mini', verbose = False)
     # seq_exist_cavs = msig.return_name_cavs_in_seq(chosen_sequence_index)
     # print(f"name CAVs in sequence {chosen_sequence_index}: {seq_exist_cavs}")
     
@@ -37,7 +37,7 @@ def main(chosen_sequence_index = 30, labeled_frame_idx = 100):
     sync_time_idx = seq_labeled_sync_time_ids[labeled_frame_idx]
     
     top_se3_map = msig.top_se3_map
-    
+    # np.ndarray = []
     painter = PointPainter()
     # ===
     for agent_name in ['laser']:
@@ -48,11 +48,7 @@ def main(chosen_sequence_index = 30, labeled_frame_idx = 100):
         map_se3_agent = msig.return_map_se3_agent(chosen_sequence_index, 
                                                     agent_name, 
                                                     agent_timestamp)
-        print(agent_pc[:5])
-        print(f'number of points: {len(agent_pc)}')            
         apply_se3_(top_se3_map @ map_se3_agent, agent_pc)
-        print(agent_pc[:5])
-        print(f'number of points: {len(agent_pc)}')  
         # add point cloud to visualization
         painter.add_pointclouds_(agent_pc, agent_color[agent_name], voxel_size=0.1)
         
@@ -60,10 +56,10 @@ def main(chosen_sequence_index = 30, labeled_frame_idx = 100):
         if agent_name == 'laser':
             # convert index to timestamp
             timestamp = msig.return_timestamp_for_query_gt(chosen_sequence_index, sync_time_idx)
-            print(f'timestamp: {timestamp}')
-
+            # print(f'timestamp: {timestamp}')
+            saved_laser_pc = np.array(agent_pc, copy=True)
             car_box = np.array([
-                [0.0, 0.0, -2.2, 1.8, 1.8, 1.8, 0.0]
+                [0.0, 0.0, -2.2, 0.7, 0.7, 0.7, 0.0]
             ], dtype=float)
             # xyz lwh yaw
             
@@ -90,14 +86,61 @@ def main(chosen_sequence_index = 30, labeled_frame_idx = 100):
     gt_boxes_in_top = apply_se3(top_se3_map, boxes_=gt_boxes_in_map)
 
     # add gt_boxes to visualization
-    painter.add_boxes_(gt_boxes_in_top, np.zeros(3))
+    # print(gt_boxes_in_top[0])
+    # print(f'number of gt boxes: {len(gt_boxes_in_top)}')
     
-    print(f'number of gt boxes: {len(gt_boxes_in_top)}')
+    # painter.add_boxes_(gt_boxes_in_top, np.zeros(3))
+    
+    
+    def points_in_box_top_frame(points_xyz: np.ndarray, box: np.ndarray) -> np.ndarray:
+        """
+        points_xyz: (N, 3) points already in TOP frame
+        box: [cx, cy, cz, dx, dy, dz, yaw, ...] also already in TOP frame
+        
+        returns: boolean mask of shape (N,)
+        """
+        cx, cy, cz, dx, dy, dz, yaw = box[:7]
 
+        # move box centre to origin
+        shifted = points_xyz - np.array([cx, cy, cz])
+
+        # rotate points into the box's local axes
+        c = np.cos(yaw)
+        s = np.sin(yaw)
+
+        x_local =  c * shifted[:, 0] + s * shifted[:, 1]
+        y_local = -s * shifted[:, 0] + c * shifted[:, 1]
+        z_local = shifted[:, 2]
+
+        mask = (
+            (np.abs(x_local) <= dx / 2) &
+            (np.abs(y_local) <= dy / 2) &
+            (np.abs(z_local) <= dz / 2)
+        )
+        return mask
+    
+    
+    points_xyz = saved_laser_pc[:, :3]
+    colour = np.zeros(3)
+    uncovered = []
+    
+    for i, box in enumerate(gt_boxes_in_top):
+        mask = points_in_box_top_frame(points_xyz, box)
+        print(f"box {i}, class {box[7]}, points inside: {mask.sum()}")
+        if mask.sum() == 0:
+            uncovered.append(i)
+    
+    print(len(gt_boxes_in_top))
+    print(uncovered)
+    
+    
+    gt_boxes_in_top = np.delete(gt_boxes_in_top, uncovered, axis=0)
+    print(len(gt_boxes_in_top))
+    painter.add_boxes_(gt_boxes_in_top, np.array([137, 0, 0]) / 255., edge_thickness=0.02)
+        
     # ===
     # painter.show(view_points=view_point)
-    
-    # print(msig.name_agents)
+
         
         
 if __name__ == '__main__':
