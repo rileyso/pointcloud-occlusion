@@ -131,9 +131,11 @@ class PointPainter(object):
     def add_boxes_(self, 
                   boxes: np.ndarray, 
                   colors: np.ndarray = None,
-                  edge_thickness: float = 0.06) -> None:
+                  edge_thickness: float = 0.06,
+                  ego_points=None) -> None:
         assert boxes.shape[1] >= 7, f"{boxes.shape}, boxes.shape[1] must >= 7"
-
+        if ego_points is None:
+            ego_points = np.zeros(boxes.shape[0])
         if colors is None:
             colors = np.zeros((boxes.shape[0], 3)) + np.array([1, 0, 0])
         else:
@@ -159,7 +161,58 @@ class PointPainter(object):
                 lines=o3d.utility.Vector2iVector(lines),
             )
             
-            line_mesh = LineMesh(cube.points, cube.lines, colors[ii], radius=edge_thickness) 
+            def value_to_rgb_dynamic(values, idx):
+                values = np.asarray(values)
+
+                vmin = np.min(values)
+                vmax = np.max(values)
+
+                if vmax == vmin:
+                    t = 0.5
+                else:
+                    t = (values[idx] - vmin) / (vmax - vmin)
+
+                # optional contrast boost
+                t = t**0.8
+
+                # colour control points: (position, rgb) red more visible 
+                stops = [
+                    (0.0, np.array([0.0, 0.0, 1.0])),   # blue
+                    (0.25, np.array([0.3, 0.0, 1.0])),  # blue violet
+                    (0.5, np.array([0.6, 0.0, 0.8])),   # purple
+                    (0.75, np.array([0.85, 0.0, 0.45])),# magenta red
+                    (1.0, np.array([1.0, 0.0, 0.0]))    # red
+                ]
+
+                for i in range(len(stops) - 1):
+                    t0, c0 = stops[i]
+                    t1, c1 = stops[i + 1]
+                    if t0 <= t <= t1:
+                        local_t = (t - t0) / (t1 - t0)
+                        return c0 + local_t * (c1 - c0)
+
+                return stops[-1][1]
+
+            def coverage_to_rgb(points_inside):
+                points_inside = int(points_inside)
+                # blue, blue violet, purple, magenta red, red
+                if points_inside == 0:
+                    return np.array([0.0, 1.0, 0.0])
+                elif points_inside <= 5:
+                    return np.array([0.2, 0.0, 1.0])
+                elif points_inside <= 20:
+                    return np.array([0.4, 0.0, 0.95])
+                elif points_inside <= 50:
+                    return np.array([0.6, 0.0, 0.85])
+                elif points_inside <= 150:
+                    return np.array([0.8, 0.0, 0.6])
+                elif points_inside <= 400:
+                    return np.array([0.95, 0.0, 0.3])
+                else:
+                    return np.array([1.0, 0.0, 0.0])
+
+            color_temp = coverage_to_rgb(ego_points[ii])
+            line_mesh = LineMesh(cube.points, cube.lines, color_temp, radius=edge_thickness) 
             line_mesh_geoms = line_mesh.cylinder_segments
 
             # add this box to object to draw

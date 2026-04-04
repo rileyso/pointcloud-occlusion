@@ -1,5 +1,6 @@
 import argparse
 import numpy as np
+import json
 
 from mixedsignals.mixed_signals import MixedSignalsExplorer
 from mixedsignals.utils.mixed_signals_utils import AGENT_COLOR as agent_color
@@ -28,7 +29,8 @@ def make_lineset_from_vertices(vertices, color=(1.0, 0.0, 0.0)):
 def main(chosen_sequence_index = 30, labeled_frame_idx = 100):
     
     print(f'showing ego pc of sequence {chosen_sequence_index} in TOP frame')
-    msig = MixedSignalsExplorer('/mnt/d/Datasets/mixed-signals-mini', verbose = False)
+    # msig = MixedSignalsExplorer('/mnt/d/Datasets/mixed-signals-mini', verbose = False)
+    msig = MixedSignalsExplorer('/mnt/d/Datasets/Mixed_signals', verbose = False)
     # seq_exist_cavs = msig.return_name_cavs_in_seq(chosen_sequence_index)
     # print(f"name CAVs in sequence {chosen_sequence_index}: {seq_exist_cavs}")
     
@@ -37,7 +39,7 @@ def main(chosen_sequence_index = 30, labeled_frame_idx = 100):
     sync_time_idx = seq_labeled_sync_time_ids[labeled_frame_idx]
     
     top_se3_map = msig.top_se3_map
-    # np.ndarray = []
+    # ['laser','top','dome']
     painter = PointPainter()
     # ===
     for agent_name in ['laser']:
@@ -91,7 +93,7 @@ def main(chosen_sequence_index = 30, labeled_frame_idx = 100):
     
     # painter.add_boxes_(gt_boxes_in_top, np.zeros(3))
     
-    
+    # box masks
     def points_in_box_top_frame(points_xyz: np.ndarray, box: np.ndarray) -> np.ndarray:
         """
         points_xyz: (N, 3) points already in TOP frame
@@ -122,24 +124,35 @@ def main(chosen_sequence_index = 30, labeled_frame_idx = 100):
     
     points_xyz = saved_laser_pc[:, :3]
     colour = np.zeros(3)
-    uncovered = []
-    
+    # uncovered = []
+    ego_points = np.array([])
+    output = {
+        "timestamp": float(timestamp),
+        "frame_index": int(labeled_frame_idx),
+        "gt_boxes": []
+    }
     for i, box in enumerate(gt_boxes_in_top):
         mask = points_in_box_top_frame(points_xyz, box)
         print(f"box {i}, class {box[7]}, points inside: {mask.sum()}")
-        if mask.sum() == 0:
-            uncovered.append(i)
+        ego_points = np.append(ego_points, mask.sum())
+        # if mask.sum() == 0:
+        #     uncovered.append(i)
+        output["gt_boxes"].append({
+            "gt_box_index": int(i),
+            "ego_point_cloud": int(mask.sum()),
+            "position": [float(x) for x in box[:3]],
+            "dimensions": [float(x) for x in box[3:6]],
+        })
     
-    print(len(gt_boxes_in_top))
-    print(uncovered)
+
+    # gt_boxes_in_top = np.delete(gt_boxes_in_top, uncovered, axis=0)
+    # ego_points = np.delete(ego_points, uncovered, axis=0)
+    painter.add_boxes_(gt_boxes_in_top, np.zeros(3), edge_thickness=0.03, ego_points=ego_points)
     
-    
-    gt_boxes_in_top = np.delete(gt_boxes_in_top, uncovered, axis=0)
-    print(len(gt_boxes_in_top))
-    painter.add_boxes_(gt_boxes_in_top, np.array([137, 0, 0]) / 255., edge_thickness=0.02)
-        
+    json_string = json.dumps(output)
+    print(json_string)
     # ===
-    # painter.show(view_points=view_point)
+    painter.show(view_points=view_point)
 
         
         
