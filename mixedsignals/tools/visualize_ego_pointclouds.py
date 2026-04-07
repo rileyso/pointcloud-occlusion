@@ -30,7 +30,7 @@ def main(chosen_sequence_index = 30, labeled_frame_idx = 100):
     
     print(f'showing ego pc of sequence {chosen_sequence_index} in TOP frame')
     # msig = MixedSignalsExplorer('/mnt/d/Datasets/mixed-signals-mini', verbose = False)
-    msig = MixedSignalsExplorer('/mnt/d/Datasets/Mixed_signals', verbose = False)
+    msig = MixedSignalsExplorer('/mnt/c/Dataset/mixed-signals-mini', verbose = False)
     # seq_exist_cavs = msig.return_name_cavs_in_seq(chosen_sequence_index)
     # print(f"name CAVs in sequence {chosen_sequence_index}: {seq_exist_cavs}")
     
@@ -149,8 +149,8 @@ def main(chosen_sequence_index = 30, labeled_frame_idx = 100):
     # ego_points = np.delete(ego_points, uncovered, axis=0)
     painter.add_boxes_(gt_boxes_in_top, np.zeros(3), edge_thickness=0.03, ego_points=ego_points)
     
-    json_string = json.dumps(output)
-    print(json_string)
+    json_string = json.dumps(output,indent=4)
+    print(json_string[:500])
     # ===
     painter.show(view_points=view_point)
 

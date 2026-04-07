@@ -13,7 +13,7 @@ def main(chosen_sequence_index: int = 18,
     
     print(f'showing aggregate pc of sequence {chosen_sequence_index} in TOP frame')
 
-    msig = MixedSignalsExplorer('/mnt/d/Datasets/mixed-signals-mini', verbose=True)
+    msig = MixedSignalsExplorer('/mnt/c/Dataset/mixed-signals-mini', verbose=True)
     seq_exist_cavs = msig.return_name_cavs_in_seq(chosen_sequence_index)
     print(f"name CAVs in sequecne {chosen_sequence_index}: {seq_exist_cavs}")
 
